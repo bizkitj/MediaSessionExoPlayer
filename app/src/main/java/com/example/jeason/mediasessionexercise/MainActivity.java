@@ -31,7 +31,6 @@ import com.google.android.exoplayer2.source.TrackGroupArray;
 import com.google.android.exoplayer2.trackselection.DefaultTrackSelector;
 import com.google.android.exoplayer2.trackselection.TrackSelectionArray;
 import com.google.android.exoplayer2.trackselection.TrackSelector;
-import com.google.android.exoplayer2.ui.PlayerControlView;
 import com.google.android.exoplayer2.ui.PlayerView;
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory;
 
@@ -96,7 +95,7 @@ public class MainActivity extends AppCompatActivity implements Player.EventListe
         if (mPlayer == null) {
             mPlayerView = findViewById(R.id.player_view);
             Renderer[] audioRenders = new Renderer[1];
-            audioRenders[0] = new MediaCodecAudioRenderer(MediaCodecSelector.DEFAULT);
+            audioRenders[0] = new MediaCodecAudioRenderer(this,MediaCodecSelector.DEFAULT);
             TrackSelector audioTrackSelection = new DefaultTrackSelector();
             mPlayer = ExoPlayerFactory.newInstance(audioRenders, audioTrackSelection);
             mPlayerView.setPlayer(mPlayer);
