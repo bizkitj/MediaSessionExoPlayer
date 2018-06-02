@@ -30,7 +30,7 @@ import com.google.android.exoplayer2.ui.PlayerNotificationManager;
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory;
 import com.google.android.exoplayer2.util.Util;
 
-public class AudioPlayService extends Service implements AudioManager.OnAudioFocusChangeListener, Player.EventListener {
+public class AudioPlayService extends Service implements AudioManager.OnAudioFocusChangeListener{
     private static final String CHANNEL_ID = "This is the channel";
     private static final int NOTIFICATION_ID = 101;
     private static final String TAG = AudioPlayService.class.getSimpleName();
@@ -42,6 +42,7 @@ public class AudioPlayService extends Service implements AudioManager.OnAudioFoc
     private AudioManager audioManager;
     private BroadcastReceiver audioBecomingNoisy;
     private IntentFilter audioBecomingNoisyIntentFilter;
+    private MyListener myListener;
 
     public AudioPlayService() {
         context = this;
@@ -55,7 +56,9 @@ public class AudioPlayService extends Service implements AudioManager.OnAudioFoc
         ExtractorMediaSource mediaSource = new ExtractorMediaSource.Factory(dataSourceFactory).createMediaSource(Uri.parse(getString(R.string.media_url)));
         player.prepare(mediaSource);
         player.setPlayWhenReady(true);
-        player.addListener(this);
+
+        myListener = new MyListener();
+        player.addListener(myListener);
         //refer to https://developer.android.com/guide/topics/media-apps/audio-focus
         audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
         audioBecomingNoisy = new AudioBecomingNoisy();
@@ -109,6 +112,7 @@ public class AudioPlayService extends Service implements AudioManager.OnAudioFoc
     @Override
     public void onDestroy() {
         super.onDestroy();
+        player.removeListener(myListener);
         mediaSession.release();
         mediaSessionConnector.setPlayer(null, null);
         playerNotificationManager.setPlayer(null);
@@ -142,27 +146,6 @@ public class AudioPlayService extends Service implements AudioManager.OnAudioFoc
         }
     }
 
-    @Override
-    public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
-        int requestAudioFocus = audioManager.requestAudioFocus(this, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
-
-        if (playbackState == Player.STATE_READY && playWhenReady) {
-            //To do, request AudioFocus here.
-            this.registerReceiver(audioBecomingNoisy, audioBecomingNoisyIntentFilter);
-            if (requestAudioFocus == AudioManager.AUDIOFOCUS_REQUEST_GRANTED){
-                player.setPlayWhenReady(true);
-            }else{
-                player.setPlayWhenReady(false);
-            }
-        } else if (playbackState == Player.STATE_READY) {
-            //Abandon audio focus here.
-            this.unregisterReceiver(audioBecomingNoisy);
-            audioManager.abandonAudioFocus(this);
-
-        }
-
-    }
-
     private class AudioBecomingNoisy extends BroadcastReceiver{
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -173,50 +156,27 @@ public class AudioPlayService extends Service implements AudioManager.OnAudioFoc
         }
     }
 
-    //region Description
-    @Override
-    public void onTimelineChanged(Timeline timeline, Object manifest, int reason) {
+    //refer to https://codelabs.developers.google.com/codelabs/exoplayer-intro/#5
+    private class MyListener extends Player.DefaultEventListener {
+        @Override
+        public void onPlayerStateChanged(boolean playWhenReady, int playbackState) {
+            int requestAudioFocus = audioManager.requestAudioFocus(AudioPlayService.this, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
 
+            if (playbackState == Player.STATE_READY && playWhenReady) {
+                //Player is playing
+                //request AudioFocus here.
+                AudioPlayService.this.registerReceiver(audioBecomingNoisy, audioBecomingNoisyIntentFilter);
+                if (requestAudioFocus == AudioManager.AUDIOFOCUS_REQUEST_GRANTED){
+                    player.setPlayWhenReady(true);
+                }else{
+                    player.setPlayWhenReady(false);
+                }
+            } else if (playbackState == Player.STATE_READY) {
+                //Player paused.
+                //Abandon audio focus here.
+                AudioPlayService.this.unregisterReceiver(audioBecomingNoisy);
+                audioManager.abandonAudioFocus(AudioPlayService.this);
+            }
+        }
     }
-
-    @Override
-    public void onTracksChanged(TrackGroupArray trackGroups, TrackSelectionArray trackSelections) {
-
-    }
-
-    @Override
-    public void onLoadingChanged(boolean isLoading) {
-
-    }
-
-    @Override
-    public void onRepeatModeChanged(int repeatMode) {
-
-    }
-
-    @Override
-    public void onShuffleModeEnabledChanged(boolean shuffleModeEnabled) {
-
-    }
-
-    @Override
-    public void onPlayerError(ExoPlaybackException error) {
-
-    }
-
-    @Override
-    public void onPositionDiscontinuity(int reason) {
-
-    }
-
-    @Override
-    public void onPlaybackParametersChanged(PlaybackParameters playbackParameters) {
-
-    }
-
-    @Override
-    public void onSeekProcessed() {
-
-    }
-    //endregion
 }

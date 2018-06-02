@@ -16,6 +16,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        playerView = findViewById(R.id.player_view);
+
         Intent foregroundAudioIntent = new Intent(this, AudioPlayService.class);
         Util.startForegroundService(this, foregroundAudioIntent);
     }

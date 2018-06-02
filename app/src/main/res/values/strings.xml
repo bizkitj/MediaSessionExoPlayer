@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">MediaSessionExercise</string>
     <string name="media_url">http://mp3.drbachinese.org/online_audio/chants/LengYanZhou_XueXiBan_DRBA.mp3</string>
+    <string name="playBack_channelName">1</string>
 </resources>
